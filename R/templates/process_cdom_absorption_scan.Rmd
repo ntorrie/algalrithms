@@ -1,0 +1,122 @@
+---
+title: "process_cdom_absorption_scan"
+output: html_document
+---
+
+Load Libraries
+```{r}
+library(dplyr)
+library(ggplot2)
+```
+
+
+
+## read in data ----------------------------------------------------------------
+```{r}
+# set your project path
+project_path <- "/Users/nicoletorrie/Documents/Dalhousie/MSc/primary_productivity_project/antigonish_sampling"
+sampling_date <- "260526"
+analysis <- "cary_cdom"
+
+
+path <-
+  file.path(paste0(
+      project_path, "/" ,
+      sampling_date, "/", analysis))
+
+raw_cdom_path <- list.dirs(path, recursive = TRUE) |> grep(pattern = "cdom_raw", value = TRUE, ignore.case = TRUE)
+
+files <- list.files(raw_cdom_path, pattern = ".csv", full.names = TRUE)
+
+
+# read in individual datasets and name the files
+data_list <- lapply(files, read.csv)
+names(data_list) <-  basename(files)
+
+```
+
+
+Select and clean blank data
+```{r}
+# what word distinguishes the blanks in the folder directory?
+blank_name <-"miliq"
+
+# list all files with blank data in the folder directory
+blank_list <- data_list[grepl(blank_name, data_list)]
+
+# choose appropriate blank from list if necessary (i.e. if there are multiple blanks)
+blank_df <- blank_list[[2]] 
+
+# set column names based on first row
+names(blank_df) <- as.character(blank_df[1,]) 
+
+# now remove the first row (header), remove the blank last column, convert absorption to numeric, and make a new column averaging the reps
+blank_df2 <- blank_df[-c(1), -c(7), drop = FALSE] %>%
+  mutate(across(contains("Abs"), as.numeric)) %>%
+  mutate(avg_blank_abs = rowMeans(pick(contains("Abs")), na.rm = TRUE))
+
+# make a new dataframe with the averaged blank values
+blank_df_clean <- blank_df2[, c(1,7)]
+```
+
+
+Select and clean an absorption scan data
+```{r}
+# list all files that do not contain blank data, in the folder directory
+sample_list <- data_list[!grepl(blank_name, data_list)]
+
+# choose one file from the list to process:
+sample_df <- sample_list[[1]]
+
+# set column names based on first row
+names(sample_df) <- as.character(sample_df[1,]) 
+
+# now remove the first row (header), remove the blank last column, convert absorption to numeric, and make a new column averaging the reps
+sample_df2 <- sample_df[-c(1), -c(7), drop = FALSE] %>%
+  mutate(across(contains("Abs"), as.numeric)) %>%
+  mutate(avg_sample_abs = rowMeans(pick(contains("Abs")), na.rm = TRUE))
+
+# make a new dataframe with the averaged blank values
+sample_df_clean <- sample_df2[, c(1,7)]
+
+```
+
+
+Process CDOM data
+```{r}
+# bind together blank and sample into one dataframe
+cbind_data_df <- cbind(blank_df_clean, select(sample_df_clean, -"Wavelength (nm)")) %>%
+    mutate(across(contains("Wavelength"), as.numeric))
+
+# apply corrections
+# set desired null point wavelength
+# set cuvette path length
+null_point_wavelength <- 685
+path_length_m <- 0.1
+rolling_avg_window_nm <- 9
+
+
+null_point_value <- cbind_data_df$avg_sample_abs[cbind_data_df$`Wavelength (nm)` == null_point_wavelength]
+
+cdom_processing_df <- cbind_data_df %>% 
+  mutate(blank_correction = avg_sample_abs - avg_blank_abs) %>% # subtract blank
+  mutate(null_point_correction = blank_correction - null_point_value) %>% # subtract null point
+  mutate(corrected_absorption = (((2.3 * null_point_correction) / path_length_m))) # convert to absorption 
+
+
+
+ggplot(cdom_processing_df, aes(x = `Wavelength (nm)`, y = corrected_absorption)) +
+  geom_point() +
+  #xlim(350, 800) +
+  scale_x_continuous(limits = c(350, 800)) +
+  scale_y_continuous(limits = c(-0.1, 15))
+
+
+```
+
+
+
+
+
+
+Make a for loop to repeat this process for every sample
