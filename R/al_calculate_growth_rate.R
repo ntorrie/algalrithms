@@ -14,9 +14,13 @@
 
 # note, a minimum of two data points are needed to calculate the growth rate
 
-al_calculate_growth_rate <- function(b0, bt, t) {
+# growth rate function (u)
+al_calculate_growth_rate_u <- function(b0, bt, t) {
   u <- log(bt / b0) / t
   u
 }
+
+
+
 
 

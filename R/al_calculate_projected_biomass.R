@@ -1,8 +1,8 @@
-#' Calculate the growth rate of a phytoplankton
+#' Calculate the projected biomass of a phytoplankton culture, assuming exponential growth
 #'
 #' @param b0 biomass at time zero
 #' @param u growth rate
-#' @param t time 
+#' @param t time elapsed
 #'
 #' @return Returns a biomass estimate for time t
 #' 
@@ -15,6 +15,11 @@
 # calculate biomass function
 al_calculate_biomass_bt <- function(b0, u, t) {
   bt = b0 * exp(u * t)
+  bt
 }
+
+
+
+
 
 
