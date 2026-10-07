@@ -1,0 +1,37 @@
+---
+output: github_document
+editor_options: 
+  chunk_output_type: console
+---
+
+<!-- README.md is generated from README.Rmd. Please edit the .Rmd file -->
+
+
+# algalrithms
+
+<!-- badges: start -->
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+
+<!-- badges: end -->
+
+
+The `algalrithms` package contains a collection of functions to assist with processing and visualizing data associated with: 
+
+Algal culturing: estimating algal growth rates, making biomass projections, estimating initial biomass
+Environmental monitoring: peak detection in spectrophotometer spectra
+
+This package supports primary productivity research conducted in partnership between Dalhousie University's [MicroAlgal Process Evaluation Lab (MAPEL)](https://microalgaeprocess.wixsite.com/mapel), and the [Centre for Marine Applied Research (CMAR)](https://cmar.ca/fvcom-animations-2/)
+
+
+
+## Installation
+
+You can install the development version of `algalrithms` from [GitHub](https://github.com/) with:
+
+``` r
+# install.packages("devtools")
+devtools::install_github("ntorrie/algalrithms")
+```
+
+
+
