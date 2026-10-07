@@ -1,42 +1,72 @@
+# install the most recent algalrithms package version
+#library(devtools)
+#install_github("ntorrie/algalrithms", force = TRUE, dependencies = TRUE)
+#library(algalrithms)
+
+# or source all functions from within package working directory
+library(miceadds) 
+source.all("/Users/nicoletorrie/Documents/Dalhousie/MSc/r/algalrithms/R")
+
 # load libraries
 library(readr)
 library(dplyr)
 library(ggplot2)
 library(lubridate)
 
+
 # bt = Biomass at given time
 # b0 = Biomass at time zero (start)
 # u = growth rate ()
 # t = time (days)
-# u = ln(bt/b0)/t
+
 # bt = b0*e^(ut)
+# b0 = bt/e^(ut)
+# u = ln(bt/b0)/t
 # t = ln(bt/b0)/u
 
-# load functions
-# growth rate function (u)
-al_calculate_growth_rate_u <- function(b0, bt, t) {
-  u <- log(bt / b0) / t
-  u
-}
+# set time params
+t1 = "2026-07-03 9:15"
+t2 = "2026-07-02 10:00"
 
 
+## calculate bt
+b0 <- 2.001
+u <- 1.02
+t <- al_calculate_time_t(t1, t2)
+
+al_calculate_biomass_bt(b0, u, t)
+
+
+## calculate b0
+bt <- 17
+u <- 1.02
+t <- al_calculate_time_t(t1, t2)
+
+al_calculate_biomass_b0(bt, u, t)
+
+
+## calculate growth rate
 b0 <- 2.001
 bt <- 4.62
-t <- 1
+t <- al_calculate_time_t(t1, t2)
+#t <- 1
 
 al_calculate_growth_rate_u(b0, bt, t)
 
 
-#alternative way to set t (hours)
-t1 = "2026-07-03 9:15"
-t2 = "2026-07-02 10:00"
-
-t_hours = as.numeric(difftime(t1, t2, units = "hours"))
-t = t_hours / 24
 
 
 
 
+
+
+
+
+
+
+
+
+#Working with imported data (OLD CODE, TO BE RE-VAMPED)
 
 #example
 # read in growth data
