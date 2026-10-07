@@ -9,3 +9,28 @@
 v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
 <!-- badges: end -->
+
+The `algalrithms` package contains a collection of functions to assist
+with processing and visualizing data associated with:
+
+1.  Algal culturing: estimating algal growth rates, making biomass
+    projections, estimating initial biomass
+
+2.  Environmental monitoring: peak detection in spectrophotometer
+    spectra
+
+This package supports primary productivity research conducted in
+partnership between Dalhousie University’s [MicroAlgal Process
+Evaluation Lab (MAPEL)](https://microalgaeprocess.wixsite.com/mapel),
+and the [Centre for Marine Applied Research
+(CMAR)](https://cmar.ca/fvcom-animations-2/)
+
+## Installation
+
+You can install the development version of `algalrithms` from
+[GitHub](https://github.com/) with:
+
+``` r
+# install.packages("devtools")
+devtools::install_github("ntorrie/algalrithms")
+```
