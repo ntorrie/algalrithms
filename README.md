@@ -14,7 +14,7 @@ The `algalrithms` package contains a collection of functions to assist
 with processing and visualizing data associated with:
 
 1.  Algal culturing: estimating algal growth rates, making biomass
-    projections, estimating initial biomass
+    projections, calculating initial biomass
 
 2.  Environmental monitoring: peak detection in spectrophotometer
     spectra
