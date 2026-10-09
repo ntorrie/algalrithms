@@ -7,6 +7,18 @@ Load Libraries
 ```{r}
 library(dplyr)
 library(ggplot2)
+library(zoo)
+library(signal)
+source.all("/Users/nicoletorrie/Documents/Dalhousie/MSc/r/algalrithms/R")
+```
+
+## set parameters
+```{r}
+# Set your range of wavelengths to look at 
+min_nm <- 350
+max_nm <- 800
+
+
 ```
 
 
@@ -56,7 +68,8 @@ blank_df2 <- blank_df[-c(1), -c(7), drop = FALSE] %>%
   mutate(avg_blank_abs = rowMeans(pick(contains("Abs")), na.rm = TRUE))
 
 # make a new dataframe with the averaged blank values
-blank_df_clean <- blank_df2[, c(1,7)]
+blank_df_clean <- blank_df2[, c(1,7)] 
+
 ```
 
 
@@ -84,33 +97,21 @@ sample_df_clean <- sample_df2[, c(1,7)]
 
 Process CDOM data
 ```{r}
-# bind together blank and sample into one dataframe
+# bind together blank and sample into one dataframe, and filter rows above or below set wavelength range
 cbind_data_df <- cbind(blank_df_clean, select(sample_df_clean, -"Wavelength (nm)")) %>%
-    mutate(across(contains("Wavelength"), as.numeric))
-
-# apply corrections
-# set desired null point wavelength
-# set cuvette path length
-null_point_wavelength <- 685
-path_length_m <- 0.1
-rolling_avg_window_nm <- 9
-
-
-null_point_value <- cbind_data_df$avg_sample_abs[cbind_data_df$`Wavelength (nm)` == null_point_wavelength]
-
-cdom_processing_df <- cbind_data_df %>% 
-  mutate(blank_correction = avg_sample_abs - avg_blank_abs) %>% # subtract blank
-  mutate(null_point_correction = blank_correction - null_point_value) %>% # subtract null point
-  mutate(corrected_absorption = (((2.3 * null_point_correction) / path_length_m))) # convert to absorption 
+  mutate(across(contains("Wavelength"), as.numeric)) %>%
+  dplyr::filter(`Wavelength (nm)` >= min_nm &
+                  `Wavelength (nm)` <= max_nm)
 
 
 
-ggplot(cdom_processing_df, aes(x = `Wavelength (nm)`, y = corrected_absorption)) +
-  geom_point() +
-  #xlim(350, 800) +
-  scale_x_continuous(limits = c(350, 800)) +
-  scale_y_continuous(limits = c(-0.1, 15))
+al_process_cdom_absorption_scan(data = cbind_data_df, method = "savitsky_golay")
 
+```
+
+
+Make a for loop to repeat this process for every sample
+```{r}
 
 ```
 
@@ -119,4 +120,3 @@ ggplot(cdom_processing_df, aes(x = `Wavelength (nm)`, y = corrected_absorption))
 
 
 
-Make a for loop to repeat this process for every sample
