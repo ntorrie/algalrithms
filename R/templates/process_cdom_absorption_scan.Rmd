@@ -4,12 +4,14 @@ output: html_document
 ---
 
 Load Libraries
-```{r}
+```{r, warning=FALSE}
 library(ggplot2)
 library(zoo)
 library(signal)
 library(readxl)
 library(dplyr)
+library(data.table)
+library(lubridate)
 source.all("/Users/nicoletorrie/Documents/Dalhousie/MSc/r/algalrithms/R")
 ```
 
@@ -26,8 +28,6 @@ min_nm <- 200
 max_nm <- 800
 smoothing_window = 15
 method = "savitsky_golay"
-
-title = paste0(select_sampling_date, " ", select_station)
 
 
 # set your project path
@@ -108,28 +108,28 @@ cbind_data_df <- cbind(blank_df_clean, select(sample_df_clean, -"wavelength_nm")
                   `wavelength_nm` <= max_nm)
 
 
+
 # plot raw data
 ggplot(cbind_data_df, aes(x = wavelength_nm)) +
-  geom_line(linewidth = 1, aes(y = avg_blank_abs, color = "Blank")) +
+  geom_line(linewidth = 0.5, aes(y = avg_blank_abs, color = "Blank")) +
   geom_line(linewidth = 0.5, aes(y = avg_sample_abs, color = "Sample")) +
-  scale_color_manual(values = c("Blank" = "pink", "Sample" = "blue")) +
+  scale_color_manual(values = c("Blank" = "black", "Sample" = "blue")) +
   labs(color = "Legend", y = "Absorption", x = "Wavelength (nm)") +
   theme_minimal() +
-  ggtitle(title)
+  ggtitle(paste0(select_sampling_date, " ", select_station, " Raw"))
 
 ```
 
 
 ## process CDOM data ----------------------------------------------------------------
 ```{r}
-# clean and smooth the absorption data, based on your desired method
+# clean and smooth the absorption data, based on your desired method and inputs (set above)
 processed_cdom <- al_process_cdom_absorption_scan(
   data = cbind_data_df,
   null_point_wavelength = null_point_wavelength_nm,
   path_length_m = path_length,
   smoothing_window_nm = smoothing_window,
-  method = method,
-  title = title
+  method = method
 )
 
 ```
@@ -137,22 +137,53 @@ processed_cdom <- al_process_cdom_absorption_scan(
 
 
 ```{r}
- # plot the absorption scan
-title = paste0(select_sampling_date, " ", select_station)
+# plot the absorption scan
+if (method == "savitsky_golay") {
+ title_method <- "Savitsky Golay Smoothed"
+} else if (method == "linear") {
+  title_method <- "Linear Smoothed"}
 
-plot1 <- ggplot(processed_cdom, aes(x = wavelength_nm)) +
-  geom_line(linewidth = 1, aes(y = corrected_absorption, color = "No Smoothing")) +
+ggplot(processed_cdom, aes(x = wavelength_nm)) +
+  geom_line(linewidth = 0.75, aes(y = corrected_absorption, color = "No Smoothing")) +
   geom_line(linewidth = 0.5,
             aes(y = corrected_absorption_smoothed, color = "Smoothed")) +
-  scale_color_manual(values = c("No Smoothing" = "pink", "Smoothed" = "blue")) +
+  scale_color_manual(values = c("No Smoothing" = "red", "Smoothed" = "blue")) +
   labs(color = "Legend", y = "Absorption", x = "Wavelength (nm)") +
   theme_minimal() +
-  ggtitle(ggtitle)
+  ggtitle(paste0(select_sampling_date, " ", select_station, " CDOM, ", title_method))
   
-plot1
 ```
 ## Print processed CDOM file with metadata ----------------------------------------------------------------
 ```{r}
+write_cdom_path <- list.dirs(path, recursive = TRUE) %>% grep(pattern = "cdom_processed", value = TRUE, ignore.case = TRUE)
+snake_station_name <- snakecase::to_snake_case(select_station)
+unique_id <- format(now(), format = "%y%m%d_%H%M")
 
+fwrite(processed_cdom, 
+       paste0(write_cdom_path, "/", 
+              paste0(select_sampling_date,"_", snake_station_name, "_processed_cdom_", unique_id, ".csv")))
 ```
+
+
+
+
+TODO
+1. Set up data printing pipeline
+2. Fix batch processing code
+3. write code for batch processing chl data
+4. write code for processing PA data
+5. write code for visualizing data outputs in html document
+
+
+
+
+
+
+
+
+
+
+
+
+
 
