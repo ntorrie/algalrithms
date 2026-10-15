@@ -9,9 +9,12 @@ library(ggplot2)
 library(zoo)
 library(signal)
 library(readxl)
+library(readr)
 library(dplyr)
 library(data.table)
 library(lubridate)
+library(miceadds)
+library(snakecase)
 source.all("/Users/nicoletorrie/Documents/Dalhousie/MSc/r/algalrithms/R")
 ```
 
@@ -28,7 +31,6 @@ min_nm <- 200
 max_nm <- 800
 smoothing_window = 15
 method = "savitsky_golay"
-
 
 # set your project path
 project_path <- "/Users/nicoletorrie/Documents/Dalhousie/MSc/primary_productivity_project/antigonish_sampling"
@@ -143,6 +145,7 @@ if (method == "savitsky_golay") {
 } else if (method == "linear") {
   title_method <- "Linear Smoothed"}
 
+
 ggplot(processed_cdom, aes(x = wavelength_nm)) +
   geom_line(linewidth = 0.75, aes(y = corrected_absorption, color = "No Smoothing")) +
   geom_line(linewidth = 0.5,
@@ -156,7 +159,7 @@ ggplot(processed_cdom, aes(x = wavelength_nm)) +
 ## Print processed CDOM file with metadata ----------------------------------------------------------------
 ```{r}
 write_cdom_path <- list.dirs(path, recursive = TRUE) %>% grep(pattern = "cdom_processed", value = TRUE, ignore.case = TRUE)
-snake_station_name <- snakecase::to_snake_case(select_station)
+snake_station_name <- to_snake_case(select_station)
 unique_id <- format(now(), format = "%y%m%d_%H%M")
 
 fwrite(processed_cdom, 
@@ -168,7 +171,7 @@ fwrite(processed_cdom,
 
 
 TODO
-1. Set up data printing pipeline
+~1. Set up data printing pipeline~
 2. Fix batch processing code
 3. write code for batch processing chl data
 4. write code for processing PA data
