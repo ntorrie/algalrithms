@@ -3,8 +3,8 @@ title: "process_cdom_absorption_scan"
 output: html_document
 ---
 
-Load Libraries
-```{r, warning=FALSE}
+## Load Libraries  ----------------------------------------------------------------
+```{r, warning=FALSE, return = FALSE}
 library(ggplot2)
 library(zoo)
 library(signal)
@@ -15,34 +15,42 @@ library(data.table)
 library(lubridate)
 library(miceadds)
 library(snakecase)
+library(tidyr)
+library(pracma)
+
 source.all("/Users/nicoletorrie/Documents/Dalhousie/MSc/r/algalrithms/R")
 ```
 
-## set parameters ----------------------------------------------------------------
+## Set parameters ----------------------------------------------------------------
 ```{r}
 # which file do you want to process? 
-select_sampling_date <- "2026-09-14"
+select_sampling_date <- "2026-10-02"
 select_station <- "Aquahub Mooring"
 
 
 # Set your parameters
-null_point_wavelength_nm = 685
-min_nm <- 200
-max_nm <- 800
-smoothing_window = 15
-method = "savitsky_golay"
+null_point_wavelength_nm <- 685 # null point correction
+anchor_wavelength_nm <- 220     # normalization
+smoothing_window_nm <- 15       # smoothing
+method <- "savitsky_golay"      # smoothing method
+derivative_window_nm <- 7       # derivative analysis
+min_nm <- 200                   # filtering final dataset, minimum wavelength
+max_nm <- 800                   # filtering final dataset, maximum wavelength
+threshold <- 0.0000005          # for peak detection
+
 
 # set your project path
 project_path <- "/Users/nicoletorrie/Documents/Dalhousie/MSc/primary_productivity_project/antigonish_sampling"
 
 # Set the path to your CDOM metadata file
-cdom_metadata <- read_excel("/Users/nicoletorrie/Documents/Dalhousie/MSc/primary_productivity_project/antigonish_sampling/antigonish_cdom_metadata.xlsx")%>%
+cdom_metadata <- read_excel(
+  "/Users/nicoletorrie/Documents/Dalhousie/MSc/primary_productivity_project/antigonish_sampling/antigonish_cdom_metadata.xlsx") %>%
   mutate(across(contains("sampling_date"), as.character))
 ```
 
 
 
-## read in data ----------------------------------------------------------------
+## Read in data ----------------------------------------------------------------
 You do not need to alter any variables here
 ```{r}
 station_metadata <- cdom_metadata %>% 
@@ -65,7 +73,6 @@ raw_cdom_path <- list.dirs(path, recursive = TRUE) %>% grep(pattern = "cdom_raw"
 
 Select and clean blank and sample data, bind them together
 ```{r}
-
 ## Blank data
 blank_df <- read_csv(paste0(raw_cdom_path, "/", blank_name), col_names = TRUE)
 
@@ -81,7 +88,6 @@ blank_df2 <- blank_df1[-c(1), -c(7), drop = FALSE] %>%
 
 # make a new dataframe with the averaged blank values
 blank_df_clean <- blank_df2[, c(1,7)] 
-
 
 
 ## Sample data
@@ -102,13 +108,9 @@ sample_df_clean <- sample_df2[, c(1,7)]
 
 
 
-
-# bind together blank and sample into one dataframe, and filter rows above or below set wavelength range
+# bind together blank and sample into one dataframe
 cbind_data_df <- cbind(blank_df_clean, select(sample_df_clean, -"wavelength_nm")) %>%
-  mutate(across(contains("wavelength"), as.numeric)) %>%
-  dplyr::filter(`wavelength_nm` >= min_nm &
-                  `wavelength_nm` <= max_nm)
-
+  mutate(across(contains("wavelength"), as.numeric)) 
 
 
 # plot raw data
@@ -123,39 +125,77 @@ ggplot(cbind_data_df, aes(x = wavelength_nm)) +
 ```
 
 
-## process CDOM data ----------------------------------------------------------------
+## Process CDOM data ----------------------------------------------------------------
 ```{r}
-# clean and smooth the absorption data, based on your desired method and inputs (set above)
+# clean, smooth, normalize, and add columns for derivative analysis of the absorption data, based on your desired method and inputs (set above). Filter for certain wavelengths
 processed_cdom <- al_process_cdom_absorption_scan(
   data = cbind_data_df,
   null_point_wavelength = null_point_wavelength_nm,
+  anchor_wavelength = anchor_wavelength_nm,
   path_length_m = path_length,
-  smoothing_window_nm = smoothing_window,
-  method = method
-)
-
-```
+  smoothing_window_nm = smoothing_window_nm,
+  method = method) %>% 
+  filter(`wavelength_nm` >= min_nm &`wavelength_nm` <= max_nm)
 
 
-
-```{r}
-# plot the absorption scan
+# plot the normalized absorption scan
 if (method == "savitsky_golay") {
- title_method <- "Savitsky Golay Smoothed"
+ title_method <- "Savitsky Golay"
 } else if (method == "linear") {
-  title_method <- "Linear Smoothed"}
+  title_method <- "Linear"}
 
 
 ggplot(processed_cdom, aes(x = wavelength_nm)) +
   geom_line(linewidth = 0.75, aes(y = corrected_absorption, color = "No Smoothing")) +
-  geom_line(linewidth = 0.5,
-            aes(y = corrected_absorption_smoothed, color = "Smoothed")) +
-  scale_color_manual(values = c("No Smoothing" = "red", "Smoothed" = "blue")) +
+  geom_line(linewidth = 0.5, aes(y = corrected_absorption_smoothed, color = "Smoothed")) + 
+  geom_line(linewidth = 0.5,aes(y = corrected_absorption_smoothed_normalized, color = "Smoothed, normalized")) +
+  scale_color_manual(values = c("No Smoothing" = "red", "Smoothed" = "green", "Smoothed, normalized" = "blue")) +
   labs(color = "Legend", y = "Absorption", x = "Wavelength (nm)") +
   theme_minimal() +
   ggtitle(paste0(select_sampling_date, " ", select_station, " CDOM, ", title_method))
+
+
+
+```
+
+
+## Visualize derivative analysis  ----------------------------------------------------------------
+```{r}
+# pivot the data to longer format for easier plotting
+processed_cdom_long <- pivot_longer(processed_cdom, cols = c(first_derivative, second_derivative, third_derivative, fourth_derivative), 
+                                    names_to = "derivative",
+                                    values_to = "absorption_derivative")
+
+
+# plot the data
+ggplot(processed_cdom_long, aes(x = wavelength_nm, y = absorption_derivative, color = derivative)) +
+  geom_line() +
+  facet_wrap(~ derivative, scales = "free_y") +  # 'free_y' lets each plot adjust its own Y-axis scale
+  theme_minimal() +
+  theme(legend.position = "none") +  # hide legend since panels are labeled
+  labs(y = "Absorption Derivative", x = "Wavelength (nm)") +
+  ggtitle(paste0(select_sampling_date, " ", select_station, " CDOM, ", title_method))
+
   
 ```
+
+# Find peaks  ----------------------------------------------------------------
+```{r}
+peaks <- findpeaks(processed_cdom$fourth_derivative, minpeakheight = threshold, minpeakdistance = 1)
+
+peak_values <- peaks[, 1]
+peak_indices <- peaks[, 2]
+peak_wavelengths <- processed_cdom$wavelength_nm[peak_indices]
+
+processed_cdom <- processed_cdom %>%
+  mutate(peak = case_when(wavelength_nm %in% peak_wavelengths ~ "Y"))
+
+processed_cdom_peaks <- processed_cdom %>%
+  filter(peak == "Y")
+```
+
+
+
 ## Print processed CDOM file with metadata ----------------------------------------------------------------
 ```{r}
 write_cdom_path <- list.dirs(path, recursive = TRUE) %>% grep(pattern = "cdom_processed", value = TRUE, ignore.case = TRUE)
