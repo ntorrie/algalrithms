@@ -10,7 +10,9 @@ v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/li
 
 <!-- badges: end -->
 
-*NOTE: THIS PACKAGE IS STILL UNDER DEVELOPMENT*
+*NOTE: THIS PACKAGE IS UNDER DEVELOPMENT*
+
+<img src="man/figures/readme_algalrithms_hex_sticker.png" alt="" width="25%" style="display: block; margin: auto;" />
 
 The `algalrithms` package contains a collection of functions to assist
 with processing and visualizing data associated with:
