@@ -1,0 +1,86 @@
+---
+title: "process_welsch_chl_data"
+output: html_document
+---
+
+Load Libraries
+```{r, warning=FALSE}
+library(ggplot2)
+library(zoo)
+library(signal)
+library(readxl)
+library(readr)
+library(dplyr)
+library(data.table)
+library(lubridate)
+library(miceadds)
+library(snakecase)
+source.all("/Users/nicoletorrie/Documents/Dalhousie/MSc/r/algalrithms/R")
+```
+
+Batch Process Chl Data
+## set parameters ----------------------------------------------------------------
+```{r}
+# which file do you want to process? 
+# set to "all" if you want to batch process
+select_sampling_date <- "260914"
+select_station <- "Aquahub Mooring"
+instrument_folder <- "welsch"
+
+
+# set your project path
+project_path <- "/Users/nicoletorrie/Documents/Dalhousie/MSc/primary_productivity_project/antigonish_sampling"
+
+
+files <- list.files(project_path, pattern = "chl_data", full.names = TRUE, recursive = TRUE)
+
+
+# read in individual datasets and name the files
+data_list <- lapply(files, read_xlsx)
+names(data_list) <-  basename(files)
+
+
+
+```
+
+Batch process all chl data
+```{r}
+
+chl_output_list <- list()
+
+for (i in 1:length(data_list)) {
+  
+  # choose one file from the list to process:
+  sample_df <- data_list[[i]]
+  
+  # set column names based on first row
+  names(sample_df) <- as.character(sample_df[15, ])
+  
+  # add sampling date as new column
+  sample_df$sample_date <- as.POSIXct(sample_df[[4, 2]])
+  
+  # delete the first 15 rows, remove unnecessary columns
+  sample_df_clean <- sample_df[-c(1:15), -c(6:11)] %>%
+    mutate(across(contains("Chla"), as.numeric))
+  
+  chl_output_list <- append(chl_output_list, list(sample_df_clean))
+  
+  all_chl_data <- bind_rows(chl_output_list)
+  
+}
+
+
+```
+
+
+```{r}
+ggplot(all_chl_data, aes(x = sample_date, color = `Client ID`)) +
+  geom_point(aes(y = `Chla Non-Acid`), size = 3) +
+  labs(color = "Sampling Site", y = "Chlorophyll-a ugL-1", x = "Sampling Date") +
+  theme_minimal() +
+  ggtitle("Antigonish Chlorophyll-a Data, Welschmeyer")
+
+
+```
+
+
