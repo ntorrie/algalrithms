@@ -16,7 +16,7 @@ editor_options:
 
 *NOTE: THIS PACKAGE IS UNDER DEVELOPMENT*
 
-```{r, echo=FALSE, out.width="25%", fig.align='center'}
+```{r, echo=FALSE, out.width="45%", fig.align='center'}
 knitr::include_graphics("man/figures/readme_algalrithms_hex_sticker.png")
 ```
 
